@@ -1,5 +1,4 @@
 import java.io.*;
-import java.util.regex.*;
 
 /**
  * MCP Server 实现 - 自定义计算器
@@ -40,7 +39,7 @@ public class MyMcpServerStdio {
 
     private static String handleRequest(String json) {
         // 解析 JSON-RPC 请求
-        String method = extractString(json, "method");
+        String method = extractValue(json, "method");
         Object id = extractId(json);
         String paramsStr = extractObject(json, "params");
 
@@ -103,7 +102,7 @@ public class MyMcpServerStdio {
             return createError(id, -32602, "Invalid params: missing params");
         }
 
-        String toolName = extractString(paramsStr, "name");
+        String toolName = extractValue(paramsStr, "name");
         String argsStr = extractObject(paramsStr, "arguments");
         if (argsStr == null) {
             argsStr = "{}";
@@ -146,58 +145,108 @@ public class MyMcpServerStdio {
         }
     }
 
-    // JSON 解析工具方法
-    private static String extractString(String json, String key) {
-        Pattern pattern = Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]*)\"");
-        Matcher matcher = pattern.matcher(json);
-        if (matcher.find()) {
-            return matcher.group(1);
+    // 优化的 JSON 解析工具方法
+    private static String extractValue(String json, String key) {
+        String search = "\"" + key + "\"";
+        int start = json.indexOf(search);
+        if (start == -1) return null;
+
+        // 找到冒号位置
+        int colon = json.indexOf(":", start);
+        if (colon == -1) return null;
+
+        // 跳过空格
+        int valueStart = colon + 1;
+        while (valueStart < json.length() && Character.isWhitespace(json.charAt(valueStart))) {
+            valueStart++;
         }
+
+        // 处理字符串值
+        if (valueStart < json.length() && json.charAt(valueStart) == '"') {
+            int valueEnd = json.indexOf('"', valueStart + 1);
+            // 处理转义的引号
+            while (valueEnd > 0 && json.charAt(valueEnd - 1) == '\\') {
+                valueEnd = json.indexOf('"', valueEnd + 1);
+            }
+            if (valueEnd == -1) return null;
+            return json.substring(valueStart + 1, valueEnd);
+        }
+
+        // 处理数字值
+        if (valueStart < json.length() && (Character.isDigit(json.charAt(valueStart)) || json.charAt(valueStart) == '-')) {
+            int valueEnd = valueStart;
+            while (valueEnd < json.length() && (Character.isDigit(json.charAt(valueEnd)) || json.charAt(valueEnd) == '.' || json.charAt(valueEnd) == 'e' || json.charAt(valueEnd) == 'E' || json.charAt(valueEnd) == '-' || json.charAt(valueEnd) == '+')) {
+                valueEnd++;
+            }
+            return json.substring(valueStart, valueEnd);
+        }
+
         return null;
     }
 
     private static int extractInt(String json, String key) {
-        Pattern pattern = Pattern.compile("\"" + key + "\"\\s*:\\s*(-?\\d+)");
-        Matcher matcher = pattern.matcher(json);
-        if (matcher.find()) {
-            return Integer.parseInt(matcher.group(1));
+        String value = extractValue(json, key);
+        if (value == null) {
+            throw new NumberFormatException("Missing or invalid integer: " + key);
         }
-        throw new NumberFormatException("Missing or invalid integer: " + key);
+        return Integer.parseInt(value);
     }
 
     private static Object extractId(String json) {
-        // 尝试提取字符串 id
-        Pattern strPattern = Pattern.compile("\"id\"\\s*:\\s*\"([^\"]*)\"");
-        Matcher strMatcher = strPattern.matcher(json);
-        if (strMatcher.find()) {
-            return strMatcher.group(1);
-        }
+        String idStr = extractValue(json, "id");
+        if (idStr == null) return null;
 
-        // 尝试提取数字 id
-        Pattern numPattern = Pattern.compile("\"id\"\\s*:\\s*(-?\\d+)");
-        Matcher numMatcher = numPattern.matcher(json);
-        if (numMatcher.find()) {
-            return Integer.parseInt(numMatcher.group(1));
+        // 尝试解析为数字
+        try {
+            return Integer.parseInt(idStr);
+        } catch (NumberFormatException e) {
+            // 不是数字，返回字符串
+            return idStr;
         }
-
-        return null;
     }
 
     private static String extractObject(String json, String key) {
-        Pattern pattern = Pattern.compile("\"" + key + "\"\\s*:\\s*\\{");
-        Matcher matcher = pattern.matcher(json);
-        if (matcher.find()) {
-            int start = matcher.end() - 1;
-            int depth = 1;
-            int end = start + 1;
-            while (end < json.length() && depth > 0) {
-                char c = json.charAt(end);
-                if (c == '{') depth++;
-                else if (c == '}') depth--;
-                end++;
-            }
-            return json.substring(start, end);
+        String search = "\"" + key + "\"";
+        int start = json.indexOf(search);
+        if (start == -1) return null;
+
+        // 找到冒号位置
+        int colon = json.indexOf(":", start);
+        if (colon == -1) return null;
+
+        // 跳过空格
+        int objectStart = colon + 1;
+        while (objectStart < json.length() && Character.isWhitespace(json.charAt(objectStart))) {
+            objectStart++;
         }
+
+        // 找到对象的开始
+        if (objectStart < json.length() && json.charAt(objectStart) == '{') {
+            int depth = 1;
+            int objectEnd = objectStart + 1;
+            while (objectEnd < json.length() && depth > 0) {
+                char c = json.charAt(objectEnd);
+                if (c == '{') {
+                    depth++;
+                } else if (c == '}') {
+                    depth--;
+                } else if (c == '"') {
+                    // 跳过字符串内的内容
+                    objectEnd++;
+                    while (objectEnd < json.length() && json.charAt(objectEnd) != '"') {
+                        if (json.charAt(objectEnd) == '\\') {
+                            objectEnd++;
+                        }
+                        objectEnd++;
+                    }
+                }
+                objectEnd++;
+            }
+            if (depth == 0) {
+                return json.substring(objectStart, objectEnd);
+            }
+        }
+
         return null;
     }
 
@@ -238,8 +287,8 @@ public class MyMcpServerStdio {
             }
             sb.append(",");
         }
-        sb.append("\"error\":{\"code\":").append(code).append(",\"message\":\"").append(escapeJson(message)).append("\"}");
-        sb.append("}");
+        sb.append("\"error\":{\"code\":").append(code).append(",\"message\":\"").append(escapeJson(message)).append("\"");
+        sb.append("}}");
         return sb.toString();
     }
 }
