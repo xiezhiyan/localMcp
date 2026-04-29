@@ -17,10 +17,13 @@ import java.util.concurrent.atomic.*;
  */
 public class MyMcpServerSSE {
 
-    private static final int PORT = 8080;
+    private static final int PORT = 1003;
     private static final String MCP_SERVER_CLASS = "MyMcpServerStdio";
-    private static final String MCP_SERVER_CWD = "/Users/xiezhiyan/code/study/localMcp";
-    private static final String JAVA_BIN = "/usr/bin/java";
+    // 部署到远端时，修改以下两个路径为远端服务器实际路径
+    private static final String MCP_SERVER_CWD = System.getProperty("mcp.cwd", System.getProperty("user.dir"));
+    private static final String JAVA_BIN = System.getProperty("mcp.java", "java");
+    // 绑定地址：默认 0.0.0.0（支持远端访问），可通过 -Dmcp.host 覆盖
+    private static final String BIND_HOST = System.getProperty("mcp.host", "0.0.0.0");
 
     // 会话存储：使用 ConcurrentHashMap 线程安全地存储 sessionId 到 Session 的映射
     // ConcurrentHashMap 是 Java 并发包提供的线程安全哈希表，适合多线程环境
@@ -31,10 +34,20 @@ public class MyMcpServerSSE {
     private static final ExecutorService executor = Executors.newCachedThreadPool();
 
     public static void main(String[] args) throws IOException {
+        // 打印启动配置信息
+        System.out.println("========================================");
+        System.out.println("  MyMcpServerSSE starting...");
+        System.out.println("  PORT:            " + PORT);
+        System.out.println("  BIND_HOST:       " + BIND_HOST);
+        System.out.println("  MCP_SERVER_CWD:  " + MCP_SERVER_CWD);
+        System.out.println("  JAVA_BIN:        " + JAVA_BIN);
+        System.out.println("  MCP_SERVER_CLASS:" + MCP_SERVER_CLASS);
+        System.out.println("========================================");
+
         // 创建 HTTP 服务器：使用 com.sun.net.httpserver.HttpServer 类
         // 这是 Java 标准库提供的轻量级 HTTP 服务器实现，无需外部依赖
         // 参数1: 绑定的地址和端口，参数2: 队列长度（0表示无限制）
-        HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
+        HttpServer server = HttpServer.create(new InetSocketAddress(BIND_HOST, PORT), 0);
 
         // ── GET /sse ───────────────────────────────────────────────────────
         // 创建 HTTP 上下文：处理 GET /sse 请求
