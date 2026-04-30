@@ -240,9 +240,41 @@ public class MyMcpServerSSE {
         server.setExecutor(executor);
         // 启动服务器：开始接受 HTTP 请求
         server.start();
-        System.out.println("MyMcpServerSSE started on http://localhost:" + PORT);
+        
+        // 获取并打印真实IP地址
+        String ipAddress = getLocalIpAddress();
+        System.out.println("MyMcpServerSSE started on http://" + ipAddress + ":" + PORT);
         System.out.println("  GET  /sse       → SSE stream (connects a session)");
         System.out.println("  POST /messages  → JSON-RPC endpoint (requires sessionId)");
+    }
+
+    // 获取本地真实IP地址
+    private static String getLocalIpAddress() {
+        try {
+            // 遍历所有网络接口
+            java.util.Enumeration<java.net.NetworkInterface> interfaces = java.net.NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                java.net.NetworkInterface iface = interfaces.nextElement();
+                // 跳过回环接口和禁用的接口
+                if (iface.isLoopback() || !iface.isUp()) {
+                    continue;
+                }
+                
+                // 遍历所有IP地址
+                java.util.Enumeration<java.net.InetAddress> addresses = iface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    java.net.InetAddress addr = addresses.nextElement();
+                    // 只返回IPv4地址，排除IPv6
+                    if (addr instanceof java.net.Inet4Address) {
+                        return addr.getHostAddress();
+                    }
+                }
+            }
+        } catch (java.net.SocketException e) {
+            // 忽略异常
+        }
+        // 如果无法获取真实IP，返回localhost
+        return "localhost";
     }
 
     // ─── SSE 发送 ──────────────────────────────────────────────────────────
