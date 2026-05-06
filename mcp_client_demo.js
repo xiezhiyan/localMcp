@@ -9,6 +9,7 @@
  */
 
 const http = require('http');
+const https = require('https');
 
 class MCPClient {
     /**
@@ -24,6 +25,24 @@ class MCPClient {
     }
 
     /**
+     * 根据 URL 协议获取对应的 HTTP 模块
+     * @param {URL} url - URL 对象
+     * @returns {Object} - http 或 https 模块
+     */
+    _getProtocolModule(url) {
+        return url.protocol === 'https:' ? https : http;
+    }
+
+    /**
+     * 获取默认端口
+     * @param {URL} url - URL 对象
+     * @returns {number} - 默认端口
+     */
+    _getDefaultPort(url) {
+        return url.protocol === 'https:' ? 443 : 80;
+    }
+
+    /**
      * 连接到 MCP 服务
      * @returns {Promise<boolean>} - 连接是否成功
      */
@@ -32,9 +51,12 @@ class MCPClient {
             console.log(`[MCP] 正在连接到 ${this.baseUrl}...`);
 
             const url = new URL(`${this.baseUrl}/sse`);
+            const protocol = this._getProtocolModule(url);
+            const defaultPort = this._getDefaultPort(url);
+            
             const options = {
                 hostname: url.hostname,
-                port: url.port ? parseInt(url.port) : 80,
+                port: url.port ? parseInt(url.port) : defaultPort,
                 path: url.pathname,
                 method: 'GET',
                 headers: {
@@ -44,7 +66,7 @@ class MCPClient {
                 }
             };
 
-            const req = http.request(options, (res) => {
+            const req = protocol.request(options, (res) => {
                 if (res.statusCode !== 200) {
                     console.error(`[MCP] 连接失败，状态码: ${res.statusCode}`);
                     resolve(false);
@@ -150,10 +172,13 @@ class MCPClient {
             const url = new URL(`${this.baseUrl}/messages`);
             url.searchParams.set('sessionId', this.sessionId);
 
+            const protocol = this._getProtocolModule(url);
+            const defaultPort = this._getDefaultPort(url);
+
             const postData = JSON.stringify(request);
             const options = {
                 hostname: url.hostname,
-                port: url.port ? parseInt(url.port) : 80,
+                port: url.port ? parseInt(url.port) : defaultPort,
                 path: url.pathname + url.search,
                 method: 'POST',
                 headers: {
@@ -162,7 +187,7 @@ class MCPClient {
                 }
             };
 
-            const req = http.request(options, (res) => {
+            const req = protocol.request(options, (res) => {
                 if (res.statusCode !== 202) {
                     delete this.pendingRequests[reqId];
                     reject(new Error(`请求失败，状态码: ${res.statusCode}`));
