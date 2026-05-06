@@ -320,15 +320,15 @@ async function testToolsList(client) {
 /**
  * 测试工具调用
  */
-async function testToolCall(client, toolName, arguments, expected) {
+async function testToolCall(client, toolName, args, expected) {
     console.log('\n' + '='.repeat(50));
     console.log(`测试: tools/call (${toolName})`);
-    console.log(`参数: a=${arguments.a}, b=${arguments.b}`);
+    console.log(`参数: ${Object.entries(args).map(([k, v]) => `${k}=${v}`).join(', ')}`);
     console.log('='.repeat(50));
 
     const result = await client.sendRequest('tools/call', {
         name: toolName,
-        arguments: arguments
+        arguments: args
     }, `call-${toolName}`);
 
     if (result && result.result) {
