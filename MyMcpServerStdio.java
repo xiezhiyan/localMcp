@@ -78,19 +78,19 @@ public class MyMcpServerStdio {
         result.append("{\"tools\":[");
 
         // add 工具
-        result.append("{\"name\":\"add\",\"description\":\"自定义加法运算，计算规则为 result = a + b + 3（例如 1 + 2 = 6）\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"integer\",\"description\":\"第一个加数\"},\"b\":{\"type\":\"integer\",\"description\":\"第二个加数\"}},\"required\":[\"a\",\"b\"]}}");
+        result.append("{\"name\":\"add\",\"description\":\"自定义加法运算，计算规则为 result = a + b + 0.1（支持小数，例如 1.5 + 2.5 = 4.1）\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"number\",\"description\":\"第一个加数\"},\"b\":{\"type\":\"number\",\"description\":\"第二个加数\"}},\"required\":[\"a\",\"b\"]}}");
         result.append(",");
 
         // subtract 工具
-        result.append("{\"name\":\"subtract\",\"description\":\"自定义减法运算，计算规则为 result = a - b（例如 5 - 3 = 2）\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"integer\",\"description\":\"被减数\"},\"b\":{\"type\":\"integer\",\"description\":\"减数\"}},\"required\":[\"a\",\"b\"]}}");
+        result.append("{\"name\":\"subtract\",\"description\":\"自定义减法运算，计算规则为 result = a - b（支持小数，例如 5.5 - 3.2 = 2.3）\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"number\",\"description\":\"被减数\"},\"b\":{\"type\":\"number\",\"description\":\"减数\"}},\"required\":[\"a\",\"b\"]}}");
         result.append(",");
 
         // multiply 工具
-        result.append("{\"name\":\"multiply\",\"description\":\"自定义乘法运算，计算规则为 result = a * b（例如 3 * 4 = 12）\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"integer\",\"description\":\"被乘数\"},\"b\":{\"type\":\"integer\",\"description\":\"乘数\"}},\"required\":[\"a\",\"b\"]}}");
+        result.append("{\"name\":\"multiply\",\"description\":\"自定义乘法运算，计算规则为 result = a * b（支持小数，例如 3.5 * 4.2 = 14.7）\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"number\",\"description\":\"被乘数\"},\"b\":{\"type\":\"number\",\"description\":\"乘数\"}},\"required\":[\"a\",\"b\"]}}");
         result.append(",");
 
         // divide 工具
-        result.append("{\"name\":\"divide\",\"description\":\"自定义除法运算，计算规则为 result = a / b，整除（例如 10 / 3 = 3）\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"integer\",\"description\":\"被除数\"},\"b\":{\"type\":\"integer\",\"description\":\"除数，不能为0\"}},\"required\":[\"a\",\"b\"]}}");
+        result.append("{\"name\":\"divide\",\"description\":\"自定义除法运算，计算规则为 result = a / b（支持小数，例如 10.5 / 3 = 3.5）\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"number\",\"description\":\"被除数\"},\"b\":{\"type\":\"number\",\"description\":\"除数，不能为0\"}},\"required\":[\"a\",\"b\"]}}");
 
         result.append("]}");
 
@@ -109,9 +109,9 @@ public class MyMcpServerStdio {
         }
 
         try {
-            int a = extractInt(argsStr, "a");
-            int b = extractInt(argsStr, "b");
-            int result;
+            double a = extractDouble(argsStr, "a");
+            double b = extractDouble(argsStr, "b");
+            double result;
             String operationName;
 
             switch (toolName) {
@@ -190,6 +190,14 @@ public class MyMcpServerStdio {
             throw new NumberFormatException("Missing or invalid integer: " + key);
         }
         return Integer.parseInt(value);
+    }
+
+    private static double extractDouble(String json, String key) {
+        String value = extractValue(json, key);
+        if (value == null) {
+            throw new NumberFormatException("Missing or invalid number: " + key);
+        }
+        return Double.parseDouble(value);
     }
 
     private static Object extractId(String json) {
