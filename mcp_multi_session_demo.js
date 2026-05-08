@@ -198,16 +198,43 @@ async function main() {
     console.log('\n--- 独立调用工具 ---');
     
     // 用户A计算：20 + 30
+    // 预期结果：50.1（自定义加法规则：a + b + 0.1）
+    // 返回结构:
+    // {
+    //   "jsonrpc": "2.0",
+    //   "id": "req-xxx",
+    //   "result": {
+    //     "content": [{ "type": "text", "text": "50.1" }]
+    //   }
+    // }
     const resultA = await clientA.sendRequest('tools/call', { name: 'add', arguments: { a: 20, b: 30 } });
-    console.log(`用户A 计算 20 + 30 = ${resultA.content[0].text.split(': ')[1]}`);
+    console.log(`\n用户A 计算 20 + 30 = ${resultA.content[0].text}`);
 
     // 用户B计算：50 * 4
+    // 预期结果：200.0（标准乘法）
+    // 返回结构:
+    // {
+    //   "jsonrpc": "2.0",
+    //   "id": "req-xxx",
+    //   "result": {
+    //     "content": [{ "type": "text", "text": "200.0" }]
+    //   }
+    // }
     const resultB = await clientB.sendRequest('tools/call', { name: 'multiply', arguments: { a: 50, b: 4 } });
-    console.log(`用户B 计算 50 * 4 = ${resultB.content[0].text.split(': ')[1]}`);
+    console.log(`用户B 计算 50 * 4 = ${resultB.content[0].text}`);
 
     // 用户C计算：100 - 25
+    // 预期结果：75.0（标准减法）
+    // 返回结构:
+    // {
+    //   "jsonrpc": "2.0",
+    //   "id": "req-xxx",
+    //   "result": {
+    //     "content": [{ "type": "text", "text": "75.0" }]
+    //   }
+    // }
     const resultC = await clientC.sendRequest('tools/call', { name: 'subtract', arguments: { a: 100, b: 25 } });
-    console.log(`用户C 计算 100 - 25 = ${resultC.content[0].text.split(': ')[1]}`);
+    console.log(`用户C 计算 100 - 25 = ${resultC.content[0].text}`);
 
     // ========== 关闭会话 ==========
     console.log('\n--- 关闭会话 ---');

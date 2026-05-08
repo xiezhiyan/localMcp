@@ -130,6 +130,8 @@ public class MyMcpServerSSE {
             exchange.getResponseHeaders().set("Cache-Control", "no-cache, no-transform");  // 禁止缓存
             exchange.getResponseHeaders().set("Connection", "keep-alive");  // 保持连接
             exchange.getResponseHeaders().set("X-Accel-Buffering", "no");  // 禁止代理缓冲
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");  // CORS 支持
+            exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");  // 允许的方法
             try {
                 // 发送响应头，参数2为响应体长度，0表示动态长度
                 exchange.sendResponseHeaders(200, 0);
@@ -162,6 +164,18 @@ public class MyMcpServerSSE {
         // ── POST /messages ─────────────────────────────────────────────────
         // 创建 HTTP 上下文：处理 POST /messages 请求
         server.createContext("/messages", exchange -> {
+            // 添加 CORS 支持
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+            exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type");
+            
+            // 处理 OPTIONS 请求（预检请求）
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(200, -1);
+                exchange.close();
+                return;
+            }
+            
             if (!"POST".equals(exchange.getRequestMethod())) {
                 exchange.getResponseHeaders().set("Allow", "POST");
                 exchange.sendResponseHeaders(405, -1);  // 405 方法不允许

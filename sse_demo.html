@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP SSE Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        .status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-circle {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+        .status.offline .status-circle {
+            background: #ef4444;
+        }
+        .status.online .status-circle {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .session-info {
+            background: #e0e7ff;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #374151;
+        }
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .params-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result {
+            margin-top: 24px;
+            padding: 20px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            display: none;
+        }
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .result-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .result-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #10b981;
+        }
+        .result.error .result-value {
+            color: #ef4444;
+        }
+        .result-json {
+            margin-top: 12px;
+            padding: 12px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .operation-desc {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 MCP SSE 计算器演示</h1>
+        
+        <!-- 连接状态 -->
+        <div class="status offline">
+            <div class="status-circle"></div>
+            <span id="status-text">未连接</span>
+        </div>
+        
+        <!-- 服务器 URL -->
+        <div class="form-group">
+            <label for="server-url">服务器 URL</label>
+            <input type="text" id="server-url" value="http://localhost:1003" placeholder="http://localhost:1003">
+        </div>
+        
+        <!-- Session 信息 -->
+        <div class="session-info" style="display: none;">
+            <strong>Session ID:</strong> <span id="session-id">-</span>
+        </div>
+        
+        <!-- 工具选择 -->
+        <div class="form-group">
+            <label for="tool-select">选择工具</label>
+            <select id="tool-select" disabled>
+                <option value="add">加法 (a + b + 0.1)</option>
+                <option value="subtract">减法 (a - b)</option>
+                <option value="multiply">乘法 (a * b)</option>
+                <option value="divide">除法 (a / b)</option>
+            </select>
+            <div class="operation-desc" id="operation-desc">选择工具查看说明</div>
+        </div>
+        
+        <!-- 参数输入 -->
+        <div class="params-row">
+            <div class="form-group">
+                <label for="param-a">参数 A</label>
+                <input type="number" id="param-a" placeholder="输入数字" disabled>
+            </div>
+            <div class="form-group">
+                <label for="param-b">参数 B</label>
+                <input type="number" id="param-b" placeholder="输入数字" disabled>
+            </div>
+        </div>
+        
+        <!-- 连接按钮 -->
+        <button id="connect-btn">连接服务器</button>
+        
+        <!-- 调用按钮 -->
+        <button id="call-btn" disabled>调用工具</button>
+        
+        <!-- 结果显示 -->
+        <div class="result" id="result">
+            <div class="result-title" id="result-title">计算结果</div>
+            <div class="result-value" id="result-value">-</div>
+            <div class="result-json" id="result-json"></div>
+        </div>
+    </div>
+
+    <script>
+        // SSE 客户端实现
+        class MCPClient {
+            constructor(baseUrl = 'http://localhost:1003') {
+                this.baseUrl = baseUrl;
+                this.sessionId = null;
+                this.eventSource = null;
+                this.pendingRequests = {};
+                this.connected = false;
+            }
+
+            async connect() {
+                return new Promise((resolve, reject) => {
+                    const url = `${this.baseUrl}/sse`;
+                    this.eventSource = new EventSource(url);
+
+                    this.eventSource.addEventListener('endpoint', (event) => {
+                        const match = event.data.match(/sessionId=([^&]+)/);
+                        if (match) {
+                            this.sessionId = match[1];
+                            this.connected = true;
+                            resolve(this.sessionId);
+                        }
+                    });
+
+                    this.eventSource.addEventListener('message', (event) => {
+                        try {
+                            const response = JSON.parse(event.data);
+                            const callback = this.pendingRequests[response.id];
+                            if (callback) {
+                                delete this.pendingRequests[response.id];
+                                callback(response);
+                            }
+                        } catch (e) {
+                            console.error('解析消息失败:', e);
+                        }
+                    });
+
+                    this.eventSource.addEventListener('ping', () => {
+                        // 心跳保活
+                    });
+
+                    this.eventSource.onerror = (error) => {
+                        this.connected = false;
+                        reject(error);
+                    };
+                });
+            }
+
+            async sendRequest(method, params = {}) {
+                if (!this.sessionId) throw new Error('未建立连接');
+
+                const reqId = `req-${Date.now()}`;
+                const request = { jsonrpc: '2.0', method, id: reqId };
+                if (Object.keys(params).length > 0) request.params = params;
+
+                return new Promise((resolve, reject) => {
+                    this.pendingRequests[reqId] = (response) => {
+                        if (response.error) reject(new Error(response.error.message));
+                        else resolve(response.result);
+                    };
+
+                    fetch(`${this.baseUrl}/messages?sessionId=${this.sessionId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(request)
+                    }).catch(err => {
+                        delete this.pendingRequests[reqId];
+                        reject(err);
+                    });
+                });
+            }
+
+            disconnect() {
+                if (this.eventSource) {
+                    this.eventSource.close();
+                    this.eventSource = null;
+                }
+                this.sessionId = null;
+                this.connected = false;
+            }
+        }
+
+        // 页面交互
+        let client = null;
+        const statusEl = document.querySelector('.status');
+        const statusText = document.getElementById('status-text');
+        const sessionIdEl = document.getElementById('session-id');
+        const sessionInfo = document.querySelector('.session-info');
+        const serverUrlInput = document.getElementById('server-url');
+        const connectBtn = document.getElementById('connect-btn');
+        const toolSelect = document.getElementById('tool-select');
+        const paramA = document.getElementById('param-a');
+        const paramB = document.getElementById('param-b');
+        const callBtn = document.getElementById('call-btn');
+        const result = document.getElementById('result');
+        const resultTitle = document.getElementById('result-title');
+        const resultValue = document.getElementById('result-value');
+        const resultJson = document.getElementById('result-json');
+        const operationDesc = document.getElementById('operation-desc');
+
+        // 工具说明
+        const toolDescriptions = {
+            add: '自定义加法：result = a + b + 0.1',
+            subtract: '标准减法：result = a - b',
+            multiply: '标准乘法：result = a * b',
+            divide: '标准除法：result = a / b（除数不能为0）'
+        };
+
+        // 连接按钮逻辑（页面加载时自动连接）
+        async function connect() {
+            try {
+                statusEl.classList.remove('offline');
+                statusEl.classList.add('online');
+                statusText.textContent = '连接中...';
+                
+                const serverUrl = serverUrlInput.value.trim() || 'http://localhost:1003';
+                client = new MCPClient(serverUrl);
+                
+                const sessionId = await client.connect();
+                
+                sessionIdEl.textContent = sessionId.substring(0, 8) + '...';
+                sessionInfo.style.display = 'block';
+                statusText.textContent = '已连接';
+                connectBtn.textContent = '重新连接';
+                
+                // 启用控件
+                toolSelect.disabled = false;
+                paramA.disabled = false;
+                paramB.disabled = false;
+                callBtn.disabled = false;
+                
+            } catch (error) {
+                statusEl.classList.remove('online');
+                statusEl.classList.add('offline');
+                statusText.textContent = '连接失败: ' + error.message;
+                sessionInfo.style.display = 'none';
+                connectBtn.textContent = '连接服务器';
+            }
+        }
+
+        // 显示结果
+        function showResult(success, title, value, json) {
+            result.style.display = 'block';
+            result.className = 'result ' + (success ? 'success' : 'error');
+            resultTitle.textContent = title;
+            resultValue.textContent = value;
+            resultJson.textContent = json;
+        }
+
+        // 工具调用
+        async function callTool() {
+            const toolName = toolSelect.value;
+            const a = parseFloat(paramA.value);
+            const b = parseFloat(paramB.value);
+
+            if (isNaN(a) || isNaN(b)) {
+                showResult(false, '错误', '请输入有效的数字', '');
+                return;
+            }
+
+            callBtn.disabled = true;
+            callBtn.textContent = '调用中...';
+
+            try {
+                const response = await client.sendRequest('tools/call', {
+                    name: toolName,
+                    arguments: { a, b }
+                });
+
+                // 解析返回结果
+                const resultText = response.content?.[0]?.text || '未知';
+                showResult(true, '计算成功', resultText, JSON.stringify(response, null, 2));
+                
+            } catch (error) {
+                showResult(false, '调用失败', error.message, '');
+            } finally {
+                callBtn.disabled = false;
+                callBtn.textContent = '调用工具';
+            }
+        }
+
+        // 事件监听
+        toolSelect.addEventListener('change', () => {
+            operationDesc.textContent = toolDescriptions[toolSelect.value];
+        });
+
+        connectBtn.addEventListener('click', connect);
+
+        callBtn.addEventListener('click', callTool);
+
+        // 页面关闭时断开连接
+        window.addEventListener('beforeunload', () => {
+            if (client) {
+                client.disconnect();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -135,7 +135,7 @@ public class MyMcpServerStdio {
                     return createError(id, -32602, "Unknown tool: " + toolName);
             }
 
-            String text = "自定义" + operationName + ": " + result;
+            String text = String.format("%.2f", result);
             return createResponse(id, "{\"content\":[{\"type\":\"text\",\"text\":\"" + escapeJson(text) + "\"}]}");
 
         } catch (NumberFormatException e) {
