@@ -1063,6 +1063,38 @@
             type();
         }
 
+        // 逐行显示消息内容
+        function displayMessageLineByLine(message, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.warn('未找到消息容器:', containerId);
+                return;
+            }
+            
+            // 将消息按换行符分割成多行
+            const lines = message.split(/\n/);
+            let currentLine = 0;
+            
+            function showNextLine() {
+                if (currentLine < lines.length) {
+                    // 对每行内容进行HTML转义
+                    const escapedLine = escapeHtml(lines[currentLine]);
+                    // 添加当前行（如果是空行则显示换行）
+                    container.innerHTML += escapedLine || '<br>';
+                    currentLine++;
+                    
+                    // 平滑滚动到底部
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    
+                    // 根据行内容长度决定延迟时间
+                    const delay = Math.max(100, lines[currentLine]?.length * 5 || 150);
+                    setTimeout(showNextLine, delay);
+                }
+            }
+            
+            showNextLine();
+        }
+
         // 动画展示思考过程
         function animateThoughtProcess(thoughtProcess) {
             // 等待DOM更新
@@ -1122,6 +1154,10 @@
             const thoughtProcess = extractThoughtProcess(result);
             
             if (message) {
+                // 生成唯一ID
+                const timestamp = Date.now();
+                const contentId = message.length > 100 ? `result-content-${timestamp}` : `msg-content-${timestamp}`;
+                
                 // 将结果作为AI消息展示，保持对话连贯性
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'message agent';
@@ -1129,41 +1165,40 @@
                 // 判断是长文本还是短文本
                 let resultHtml = '';
                 if (message.length > 100) {
-                    // 长文本使用卡片展示
+                    // 长文本使用卡片展示（预留空容器用于逐行填充）
                     resultHtml = `
                         <div class="result-card">
                             <div class="result-header">
                                 <span class="icon">💬</span>
                                 <span>分析结果</span>
                             </div>
-                            <div class="result-content">
-                                ${renderMessageContent(message)}
+                            <div class="result-content" id="${contentId}">
                             </div>
                         </div>
                     `;
                 } else {
-                    // 短文本直接显示
-                    resultHtml = `<div class="message-content">${escapeHtml(message)}</div>`;
+                    // 短文本使用空容器用于逐行填充
+                    resultHtml = `<div class="message-content" id="${contentId}"></div>`;
                 }
                 
-                // 构建思考过程HTML（在结果上面）
+                // 构建思考过程HTML（在结果上面，默认收起）
                 let thoughtHtml = '';
                 if (thoughtProcess && thoughtProcess.length > 1) {
                     thoughtHtml = `
-                        <div class="thought-process" id="thought-${Date.now()}">
-                            <div class="thought-header" onclick="toggleThought(this)">
+                        <div class="thought-process" id="thought-${timestamp}">
+                            <div class="thought-header collapsed" onclick="toggleThought(this)">
                                 <span class="thought-icon">🧠</span>
                                 <span>思考过程</span>
                                 <span class="thought-toggle">▼</span>
                             </div>
-                            <div class="thought-content">
+                            <div class="thought-content" style="display: none;">
                                 ${thoughtProcess.map((step, index) => `
                                     <div class="thought-step">
                                         <div class="step-header">
                                             <span class="step-index">${index + 1}</span>
                                             <span class="step-title">${step.header?.title || '步骤'}</span>
                                         </div>
-                                        <div class="step-content" id="step-content-${index}">${escapeHtml(step.text)}</div>
+                                        <div class="step-content" id="step-content-${timestamp}-${index}">${escapeHtml(step.text)}</div>
                                     </div>
                                 `).join('')}
                             </div>
@@ -1179,9 +1214,16 @@
                 
                 messagesWrapper.appendChild(messageDiv);
             
-            // 打字机效果展示思考过程，完成后自动收起
+            // 逐行显示消息内容
+            setTimeout(() => {
+                displayMessageLineByLine(message, contentId);
+            }, 100);
+            
+            // 思考过程默认收起，不再执行打字机效果
+            // 用户点击展开后可以查看内容
             if (thoughtProcess && thoughtProcess.length > 1) {
-                animateThoughtProcess(thoughtProcess);
+                // 思考过程默认收起，不需要打字机效果
+                // animateThoughtProcess(thoughtProcess);
             }
             
             // 从文本中提取规避区坐标（支持多种格式）
