@@ -1,0 +1,164 @@
+{
+  "session_id": "8427af04-e43f-4f9d-a23a-07c3e333c103",
+  "outputs": [
+    {
+      "inputs": {
+        "input_value": "计算1+1"
+      },
+      "outputs": [
+        {
+          "results": {
+            "message": {
+              "text_key": "text",
+              "data": {
+                "timestamp": "2026-05-11 07:28:19 UTC",
+                "sender": "Machine",
+                "sender_name": "AI",
+                "session_id": "8427af04-e43f-4f9d-a23a-07c3e333c103",
+                "context_id": "",
+                "text": "## 第一阶段：任务规划\n\n基于当前可用工具，针对您的需求\"计算1+1\"，我制定了以下任务规划：\n\n| 步骤 | 工具名称 | 任务描述 | 确认提示 |\n|------|---------|---------|---------|\n| 1 | **add** | 调用 add 工具进行加法运算：计算 1 + 1，结果为 a + b + 0.1 = 1 + 1 + 0.1 = 2.1 | — |\n\n> ⚠️ **注意**：根据 `add` 工具的运算规则 `result = a + b + 0.1`，1 + 1 的计算结果将为 **2.1**，而非常规的 2。\n\n---\n\n**请确认当前任务规划是否准确，若确认请回复\"执行规划\"。**",
+                "files": [],
+                "error": false,
+                "edit": false,
+                "properties": {
+                  "text_color": null,
+                  "background_color": null,
+                  "edited": false,
+                  "source": {
+                    "id": "Agent-xDVRU",
+                    "display_name": "智能体",
+                    "source": "deepseek-v4-pro"
+                  },
+                  "icon": "Bot",
+                  "allow_markdown": false,
+                  "positive_feedback": null,
+                  "state": "complete",
+                  "targets": []
+                },
+                "category": "message",
+                "content_blocks": [
+                  {
+                    "title": "Agent Steps",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "duration": 8,
+                        "header": {
+                          "title": "Input",
+                          "icon": "MessageSquare"
+                        },
+                        "text": "计算1+1"
+                      },
+                      {
+                        "type": "text",
+                        "duration": 20,
+                        "header": {
+                          "title": "Output",
+                          "icon": "MessageSquare"
+                        },
+                        "text": "## 第一阶段：任务规划\n\n基于当前可用工具，针对您的需求\"计算1+1\"，我制定了以下任务规划：\n\n| 步骤 | 工具名称 | 任务描述 | 确认提示 |\n|------|---------|---------|---------|\n| 1 | **add** | 调用 add 工具进行加法运算：计算 1 + 1，结果为 a + b + 0.1 = 1 + 1 + 0.1 = 2.1 | — |\n\n> ⚠️ **注意**：根据 `add` 工具的运算规则 `result = a + b + 0.1`，1 + 1 的计算结果将为 **2.1**，而非常规的 2。\n\n---\n\n**请确认当前任务规划是否准确，若确认请回复\"执行规划\"。**"
+                      }
+                    ],
+                    "allow_markdown": true,
+                    "media_url": null
+                  }
+                ],
+                "id": "7dcb899f-0212-45cc-9a96-9bc6b896bf28",
+                "flow_id": "ef8a152c-8696-489d-b6aa-e13e9a7c3a5d",
+                "duration": null
+              },
+              "default_value": "",
+              "text": "## 第一阶段：任务规划\n\n基于当前可用工具，针对您的需求\"计算1+1\"，我制定了以下任务规划：\n\n| 步骤 | 工具名称 | 任务描述 | 确认提示 |\n|------|---------|---------|---------|\n| 1 | **add** | 调用 add 工具进行加法运算：计算 1 + 1，结果为 a + b + 0.1 = 1 + 1 + 0.1 = 2.1 | — |\n\n> ⚠️ **注意**：根据 `add` 工具的运算规则 `result = a + b + 0.1`，1 + 1 的计算结果将为 **2.1**，而非常规的 2。\n\n---\n\n**请确认当前任务规划是否准确，若确认请回复\"执行规划\"。**",
+              "sender": "Machine",
+              "sender_name": "AI",
+              "files": [],
+              "session_id": "8427af04-e43f-4f9d-a23a-07c3e333c103",
+              "context_id": "",
+              "timestamp": "2026-05-11T07:28:19+00:00",
+              "flow_id": "ef8a152c-8696-489d-b6aa-e13e9a7c3a5d",
+              "error": false,
+              "edit": false,
+              "properties": {
+                "text_color": null,
+                "background_color": null,
+                "edited": false,
+                "source": {
+                  "id": "Agent-xDVRU",
+                  "display_name": "智能体",
+                  "source": "deepseek-v4-pro"
+                },
+                "icon": "Bot",
+                "allow_markdown": false,
+                "positive_feedback": null,
+                "state": "complete",
+                "targets": []
+              },
+              "category": "message",
+              "content_blocks": [
+                {
+                  "title": "Agent Steps",
+                  "contents": [
+                    {
+                      "type": "text",
+                      "duration": 8,
+                      "header": {
+                        "title": "Input",
+                        "icon": "MessageSquare"
+                      },
+                      "text": "计算1+1"
+                    },
+                    {
+                      "type": "text",
+                      "duration": 20,
+                      "header": {
+                        "title": "Output",
+                        "icon": "MessageSquare"
+                      },
+                      "text": "## 第一阶段：任务规划\n\n基于当前可用工具，针对您的需求\"计算1+1\"，我制定了以下任务规划：\n\n| 步骤 | 工具名称 | 任务描述 | 确认提示 |\n|------|---------|---------|---------|\n| 1 | **add** | 调用 add 工具进行加法运算：计算 1 + 1，结果为 a + b + 0.1 = 1 + 1 + 0.1 = 2.1 | — |\n\n> ⚠️ **注意**：根据 `add` 工具的运算规则 `result = a + b + 0.1`，1 + 1 的计算结果将为 **2.1**，而非常规的 2。\n\n---\n\n**请确认当前任务规划是否准确，若确认请回复\"执行规划\"。**"
+                    }
+                  ],
+                  "allow_markdown": true,
+                  "media_url": null
+                }
+              ],
+              "duration": null
+            }
+          },
+          "artifacts": {
+            "message": "## 第一阶段：任务规划\n\n基于当前可用工具，针对您的需求\"计算1+1\"，我制定了以下任务规划：\n\n| 步骤 | 工具名称 | 任务描述 | 确认提示 |\n\n|------|---------|---------|---------|\n\n| 1 | **add** | 调用 add 工具进行加法运算：计算 1 + 1，结果为 a + b + 0.1 = 1 + 1 + 0.1 = 2.1 | — |\n\n> ⚠️ **注意**：根据 `add` 工具的运算规则 `result = a + b + 0.1`，1 + 1 的计算结果将为 **2.1**，而非常规的 2。\n\n---\n\n**请确认当前任务规划是否准确，若确认请回复\"执行规划\"。**",
+            "sender": "Machine",
+            "sender_name": "AI",
+            "files": [],
+            "type": "object"
+          },
+          "outputs": {
+            "message": {
+              "message": "## 第一阶段：任务规划\n\n基于当前可用工具，针对您的需求\"计算1+1\"，我制定了以下任务规划：\n\n| 步骤 | 工具名称 | 任务描述 | 确认提示 |\n|------|---------|---------|---------|\n| 1 | **add** | 调用 add 工具进行加法运算：计算 1 + 1，结果为 a + b + 0.1 = 1 + 1 + 0.1 = 2.1 | — |\n\n> ⚠️ **注意**：根据 `add` 工具的运算规则 `result = a + b + 0.1`，1 + 1 的计算结果将为 **2.1**，而非常规的 2。\n\n---\n\n**请确认当前任务规划是否准确，若确认请回复\"执行规划\"。**",
+              "type": "text"
+            }
+          },
+          "logs": {
+            "message": []
+          },
+          "messages": [
+            {
+              "message": "## 第一阶段：任务规划\n\n基于当前可用工具，针对您的需求\"计算1+1\"，我制定了以下任务规划：\n\n| 步骤 | 工具名称 | 任务描述 | 确认提示 |\n\n|------|---------|---------|---------|\n\n| 1 | **add** | 调用 add 工具进行加法运算：计算 1 + 1，结果为 a + b + 0.1 = 1 + 1 + 0.1 = 2.1 | — |\n\n> ⚠️ **注意**：根据 `add` 工具的运算规则 `result = a + b + 0.1`，1 + 1 的计算结果将为 **2.1**，而非常规的 2。\n\n---\n\n**请确认当前任务规划是否准确，若确认请回复\"执行规划\"。**",
+              "sender": "Machine",
+              "sender_name": "AI",
+              "session_id": "8427af04-e43f-4f9d-a23a-07c3e333c103",
+              "stream_url": null,
+              "component_id": "ChatOutput-c9YMY",
+              "files": [],
+              "type": "text"
+            }
+          ],
+          "timedelta": null,
+          "duration": null,
+          "component_display_name": "会话输出",
+          "component_id": "ChatOutput-c9YMY",
+          "used_frozen_result": false
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能体助手 - 高德地图演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* 对话框容器 */
+        .dialog-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        /* 收起状态 */
+        .assistant-btn {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 3px solid white;
+        }
+
+        .assistant-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px rgba(102, 126, 234, 0.6);
+        }
+
+        .assistant-btn img {
+            width: 32px;
+            height: 32px;
+        }
+
+        /* 展开状态 - 对话框 */
+        .dialog-wrapper {
+            width: 520px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            position: relative;
+            height: 700px;
+        }
+
+        /* 对话框头部 */
+        .dialog-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        .dialog-header .title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dialog-header .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .dialog-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .new-chat-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .new-chat-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 消息列表 */
+        .messages-container {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 60px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 12px;
+            background: #f5f7fa;
+        }
+
+        .messages-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .messages-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: #eef0f3;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #c1c7d0;
+            border-radius: 2px;
+        }
+
+        /* 消息气泡 */
+        .message {
+            display: flex;
+            gap: 8px;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.agent {
+            justify-content: flex-start;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .agent .message-avatar {
+            background: #e9ecef;
+            color: #666;
+        }
+
+        .message-content {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+
+        .user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .agent .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e5e7eb;
+            border-bottom-left-radius: 4px;
+        }
+
+        /* AI响应容器 */
+        .agent-response {
+            max-width: 90%;
+        }
+
+        /* 打字中状态 */
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-3px); }
+        }
+
+        /* 输入区域 */
+        .input-container {
+            padding: 10px 14px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 8px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            box-sizing: border-box;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-container input:focus {
+            border-color: #667eea;
+        }
+
+        .input-container button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.15s;
+        }
+
+        .input-container button:hover {
+            transform: scale(1.05);
+        }
+
+        /* ===== 思考过程组件 ===== */
+
+        /* 思考过程容器 */
+        .thought-process {
+            margin-top: 12px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fffbeb;
+            border: 1px solid #fef3c7;
+        }
+
+        /* 思考过程头部 */
+        .thought-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: #fef9c3;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #92400e;
+        }
+
+        .thought-icon {
+            font-size: 16px;
+        }
+
+        .thought-toggle {
+            margin-left: auto;
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .thought-header.collapsed .thought-toggle {
+            transform: rotate(-90deg);
+        }
+
+        /* 思考过程内容 */
+        .thought-content {
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* 思考步骤 */
+        .thought-step {
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            border-left: 3px solid #f59e0b;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #d97706;
+        }
+
+        .step-index {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fcd34d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #92400e;
+        }
+
+        .step-content {
+            font-size: 13px;
+            color: #451a03;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        /* ===== 内容展示组件 ===== */
+
+        /* 结果卡片 */
+        .result-card {
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* 结果头部 */
+        .result-header {
+            padding: 12px 14px;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .result-header .icon {
+            font-size: 16px;
+        }
+
+        /* 消息数量标签 */
+        .message-count {
+            margin-left: auto;
+            padding: 2px 8px;
+            background: #e0e7ff;
+            color: #4338ca;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 10px;
+        }
+
+        /* 结果内容 */
+        .result-content {
+            padding: 10px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: #374151;
+        }
+
+        /* 消息项 */
+        .message-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        /* 消息序号 */
+        .message-index {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* 消息内容体 */
+        .message-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* 短文本 */
+        .short-text {
+            margin: 0;
+            font-size: 14px;
+            color: #374151;
+            line-height: 1.6;
+        }
+
+        /* 长文本 */
+        .long-text {
+            font-size: 13px;
+            color: #4b5563;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* JSON内容 */
+        .json-content {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #e2e8f0;
+            background: #1e293b;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+            overflow-x: auto;
+        }
+
+        /* 代码高亮样式 */
+        .json-key {
+            color: #f472b6;
+            font-weight: 500;
+        }
+
+        .json-string {
+            color: #10b981;
+        }
+
+        .json-number {
+            color: #3b82f6;
+        }
+
+        .json-boolean {
+            color: #8b5cf6;
+        }
+
+        .json-null {
+            color: #9ca3af;
+        }
+
+        /* 空消息提示 */
+        .empty-message {
+            text-align: center;
+            color: #9ca3af;
+            padding: 20px;
+            font-size: 14px;
+        }
+
+        /* 错误提示 */
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fee2e2;
+            color: #dc2626;
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .error-message .error-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <!-- AI助手对话框 -->
+    <div class="dialog-container" id="dialogContainer">
+        <!-- 收起状态 -->
+        <div class="assistant-btn" id="assistantBtn">
+            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 18H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zM9 14H7v-2h2v2zm4 0h-2V8h2v6zm4 0h-2v-2h2v2zM9 10H7V8h2v2zm4 0h-2V8h2v2zm4 0h-2V8h2v2zM5 6h14V4H5v2z'/></svg>" alt="AI助手">
+        </div>
+
+        <!-- 展开状态 -->
+        <div class="dialog-wrapper" id="dialogWrapper" style="display: none;">
+            <div class="dialog-header">
+                <div class="title">
+                    <div class="avatar">🤖</div>
+                    <h2>智能助手</h2>
+                </div>
+                <div class="header-actions">
+                    <button class="new-chat-btn" id="newChatBtn">⊕</button>
+                    <button class="close-btn" id="closeBtn">✕</button>
+                </div>
+            </div>
+
+            <div class="messages-container" id="messagesContainer">
+                <div class="messages-wrapper">
+                    <!-- 欢迎消息 -->
+                    <div class="message agent">
+                        <div class="message-avatar">🤖</div>
+                        <div class="message-content">
+                            你好！有什么可以帮到你？
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <input type="text" id="messageInput" placeholder="输入消息..." autocomplete="off">
+                <button id="sendBtn">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://webapi.amap.com/maps?v=2.0&key=53d675d3366a46102148c7877143550e"></script>
+    <script>
+        // 切换思考过程展开/收起
+        function toggleThought(header) {
+            const content = header.nextElementSibling;
+            header.classList.toggle('collapsed');
+            if (header.classList.contains('collapsed')) {
+                content.style.display = 'none';
+            } else {
+                content.style.display = 'flex';
+            }
+        }
+
+        // 全局地图对象
+        let map = null;
+        let markers = [];
+        let searchBoundsPolygon = null;
+        let avoidZonePolygon = null;
+        let avoidZoneText = null;
+
+        // 高德地图初始化
+        function initMap() {
+            map = new AMap.Map('map', {
+                center: [116.4, 39.9],
+                zoom: 12,
+                layers: [
+                    new AMap.TileLayer.Satellite(),
+                    new AMap.TileLayer.RoadNet()
+                ]
+            });
+            map.addControl(new AMap.Scale());
+            map.addControl(new AMap.ToolBar());
+            map.addControl(new AMap.MapType({ defaultType: 0 }));
+        }
+
+        // 清除所有图层
+        function clearAllLayers() {
+            if (searchBoundsPolygon) {
+                map.remove(searchBoundsPolygon);
+                searchBoundsPolygon = null;
+            }
+            if (avoidZonePolygon) {
+                map.remove(avoidZonePolygon);
+                avoidZonePolygon = null;
+            }
+            markers.forEach(marker => map.remove(marker));
+            markers = [];
+        }
+
+        // 解析文本中的矩形范围（左下角和右上角坐标）
+        function parseBounds(text) {
+            const coords = parseCoordinates(text);
+            if (coords.length >= 2) {
+                // 取前两个点作为左下角和右上角
+                return {
+                    leftBottom: coords[0],
+                    rightTop: coords[1]
+                };
+            }
+            return null;
+        }
+
+        // 绘制搜索范围矩形
+        function drawSearchBounds(bounds) {
+            if (!map || !bounds) return;
+            if (!bounds.leftBottom || !bounds.rightTop) return;
+            
+            console.log('绘制搜索范围:', bounds);
+
+            // 清除之前的搜索范围
+            if (searchBoundsPolygon) {
+                map.remove(searchBoundsPolygon);
+            }
+
+            // 确保坐标顺序正确：leftBottom.x < rightTop.x, leftBottom.y < rightTop.y
+            const minX = Math.min(bounds.leftBottom[0], bounds.rightTop[0]);
+            const maxX = Math.max(bounds.leftBottom[0], bounds.rightTop[0]);
+            const minY = Math.min(bounds.leftBottom[1], bounds.rightTop[1]);
+            const maxY = Math.max(bounds.leftBottom[1], bounds.rightTop[1]);
+            
+            // 确保范围足够大（至少0.01度）
+            const deltaX = Math.max(maxX - minX, 0.01);
+            const deltaY = Math.max(maxY - minY, 0.01);
+            
+            // 构造矩形四个顶点：左下、右下、右上、左上、左下（闭合）
+            const path = [
+                [minX, minY],        // 左下角
+                [minX + deltaX, minY],  // 右下角
+                [minX + deltaX, minY + deltaY],  // 右上角
+                [minX, minY + deltaY],  // 左上角
+                [minX, minY]         // 左下角（闭合）
+            ];
+            
+            console.log('矩形路径:', path);
+
+            // 创建多边形
+            const polygon = new AMap.Polygon({
+                path: path,
+                fillColor: '#3b82f6',      // 蓝色填充
+                fillOpacity: 0.3,          // 30%透明度
+                strokeColor: '#1d4ed8',    // 深蓝色边框
+                strokeWeight: 3,           // 边框宽度
+                strokeStyle: 'solid',      // 实线
+                strokeOpacity: 1,          // 边框不透明
+                zIndex: 10                 // 确保在最上层
+            });
+            
+            // 添加到地图
+            map.add(polygon);
+            searchBoundsPolygon = polygon;
+            
+            console.log('多边形已添加:', polygon);
+
+            // 调整视野
+            map.setFitView([polygon], 100);
+        }
+
+        // 从文本中解析坐标点（支持多种格式）
+        function parseCoordinates(text) {
+            const coordinates = [];
+            
+            // 支持的坐标格式：
+            // 1. [经度, 纬度] 或 [经度,纬度]
+            // 2. 经度, 纬度 或 经度,纬度
+            // 3. 经度 纬度（空格分隔）
+            // 4. 经度；纬度（中文分号）
+            // 5. 经度，纬度（中文逗号）
+            
+            // 正则表达式：支持带/不带中括号，支持逗号、空格、分号、中文逗号分隔
+            const regex = /\[?\s*(-?\d+\.?\d*)\s*[,，;\s]\s*(-?\d+\.?\d*)\s*\]?/g;
+            let match;
+            
+            while ((match = regex.exec(text)) !== null) {
+                const lng = parseFloat(match[1]);
+                const lat = parseFloat(match[2]);
+                
+                // 验证坐标范围（经度: -180 到 180，纬度: -90 到 90）
+                if (!isNaN(lng) && !isNaN(lat) && lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90) {
+                    coordinates.push([lng, lat]);
+                }
+            }
+            
+            return coordinates;
+        }
+
+        // 绘制规避区（从MCP返回结果）
+        function drawAvoidZoneFromCoords(polygonCoords, avoidName) {
+            if (!map || !polygonCoords || polygonCoords.length === 0) return;
+
+            // 清除之前的规避区和文字标注
+            if (avoidZonePolygon) {
+                map.remove(avoidZonePolygon);
+            }
+            if (avoidZoneText) {
+                map.remove(avoidZoneText);
+            }
+
+            const polygon = new AMap.Polygon({
+                path: polygonCoords,
+                fillColor: 'rgba(239, 68, 68, 0.4)',
+                strokeColor: '#ef4444',
+                strokeWeight: 3,
+                strokeStyle: 'solid'
+            });
+            map.add(polygon);
+            avoidZonePolygon = polygon;
+
+            // 在规避区中心添加文字标注
+            const center = calculateCenter(polygonCoords);
+            const textMarker = new AMap.Text({
+                text: '规避区',
+                position: center,
+                style: {
+                    fontSize: 14,
+                    fontWeight: 'bold',
+                    fillColor: '#dc2626',
+                    strokeColor: '#ffffff',
+                    strokeWidth: 2,
+                    textAlign: 'center',
+                    offset: [0, 0]
+                }
+            });
+            map.add(textMarker);
+            avoidZoneText = textMarker;
+
+            // 调整视野以同时包含搜索范围和规避区
+            if (searchBoundsPolygon) {
+                map.setFitView([searchBoundsPolygon, polygon], 50);
+            } else {
+                map.setFitView([polygon], 50);
+            }
+        }
+
+        // 计算多边形中心点
+        function calculateCenter(coords) {
+            if (!coords || coords.length === 0) return [116.4, 39.9];
+            
+            let sumX = 0, sumY = 0;
+            coords.forEach(coord => {
+                sumX += coord[0];
+                sumY += coord[1];
+            });
+            return [sumX / coords.length, sumY / coords.length];
+        }
+
+        // 根据左下角和右上角坐标绘制矩形（匹配"选址范围"）
+        function addMarkersToMap(coordinates) {
+            if (!map || !coordinates || coordinates.length < 2) return;
+            
+            // 获取左下角和右上角坐标
+            const leftBottom = coordinates[0];
+            const rightTop = coordinates[1];
+            
+            // 确保坐标顺序正确
+            const minX = Math.min(leftBottom[0], rightTop[0]);
+            const maxX = Math.max(leftBottom[0], rightTop[0]);
+            const minY = Math.min(leftBottom[1], rightTop[1]);
+            const maxY = Math.max(leftBottom[1], rightTop[1]);
+            
+            // 构造矩形四个顶点：左下、右下、右上、左上、左下（闭合）
+            const path = [
+                [minX, minY],  // 左下角
+                [maxX, minY],  // 右下角
+                [maxX, maxY],  // 右上角
+                [minX, maxY],  // 左上角
+                [minX, minY]   // 左下角（闭合）
+            ];
+            
+            // 创建矩形多边形
+            const rectangle = new AMap.Polygon({
+                path: path,
+                fillColor: 'rgba(59, 130, 246, 0.3)',     // 蓝色半透明填充
+                fillOpacity: 0.3,
+                strokeColor: '#2563eb',                   // 深蓝色边框
+                strokeWeight: 3,
+                strokeStyle: 'solid',
+                strokeOpacity: 1,
+                zIndex: 10
+            });
+            
+            map.add(rectangle);
+            
+            // 添加文字标注
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+            
+            const textMarker = new AMap.Text({
+                text: '选址范围',
+                position: [centerX, centerY],
+                style: {
+                    fontSize: 14,
+                    fontWeight: 'bold',
+                    fillColor: '#1d4ed8',
+                    strokeColor: '#ffffff',
+                    strokeWidth: 2,
+                    textAlign: 'center',
+                    offset: [0, 0]
+                }
+            });
+            
+            map.add(textMarker);
+            markers.push(textMarker);
+            
+            // 调整视野
+            map.setFitView([rectangle], 100);
+        }
+
+        // 全局会话ID（第一次创建后复用）
+        let sessionId = null;
+
+        // DOM元素
+        const dialogContainer = document.getElementById('dialogContainer');
+        const assistantBtn = document.getElementById('assistantBtn');
+        const dialogWrapper = document.getElementById('dialogWrapper');
+        const closeBtn = document.getElementById('closeBtn');
+        const newChatBtn = document.getElementById('newChatBtn');
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        
+        // 获取消息包装器
+        let messagesWrapper = null;
+
+        // API配置
+        const API_URL = 'http://192.168.168.191:8490/agentx/workflowstudio/api/v1/run/ef8a152c-8696-489d-b6aa-e13e9a7c3a5d';
+
+        // 切换对话框状态
+        function toggleDialog() {
+            const isOpen = dialogWrapper.style.display === 'block';
+            if (isOpen) {
+                dialogWrapper.style.display = 'none';
+                assistantBtn.style.display = 'flex';
+            } else {
+                dialogWrapper.style.display = 'block';
+                assistantBtn.style.display = 'none';
+                messageInput.focus();
+                // 初始化消息包装器
+                if (!messagesWrapper) {
+                    messagesWrapper = messagesContainer.querySelector('.messages-wrapper');
+                }
+            }
+        }
+
+        // HTML转义
+        function escapeHtml(str) {
+            if (str === undefined || str === null || typeof str !== 'string') {
+                return '';
+            }
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;');
+        }
+
+        // 从结果中提取消息内容（支持多种路径）
+        function extractFirstMessage(result) {
+            try {
+                // 路径1: outputs[0].outputs[0].messages[0].message
+                if (result.outputs && Array.isArray(result.outputs) && result.outputs[0]) {
+                    const firstLevel = result.outputs[0];
+                    if (firstLevel.outputs && Array.isArray(firstLevel.outputs) && firstLevel.outputs[0]) {
+                        const secondLevel = firstLevel.outputs[0];
+                        
+                        // 优先从 messages 数组提取
+                        if (secondLevel.messages && Array.isArray(secondLevel.messages) && secondLevel.messages[0]) {
+                            const msg = secondLevel.messages[0].message;
+                            if (typeof msg === 'string' && msg.trim()) {
+                                return msg;
+                            }
+                        }
+                        
+                        // 其次从 outputs.message.message 提取
+                        if (secondLevel.outputs && secondLevel.outputs.message) {
+                            const msg = secondLevel.outputs.message.message;
+                            if (typeof msg === 'string' && msg.trim()) {
+                                return msg;
+                            }
+                        }
+                        
+                        // 最后从 results.message.text 提取
+                        if (secondLevel.results && secondLevel.results.message) {
+                            const msg = secondLevel.results.message.text;
+                            if (typeof msg === 'string' && msg.trim()) {
+                                return msg;
+                            }
+                        }
+                    }
+                }
+                
+                return null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // 渲染消息内容
+        function renderMessageContent(content) {
+            if (!content) {
+                return '<div class="empty-message">暂无消息内容</div>';
+            }
+            
+            // 尝试解析为JSON
+            let isJson = false;
+            let parsedContent = null;
+            
+            try {
+                parsedContent = JSON.parse(content);
+                isJson = true;
+            } catch (e) {
+                // 不是JSON，保持原样
+            }
+            
+            if (isJson) {
+                return renderJsonContent(parsedContent);
+            }
+            
+            // 普通文本
+            if (content.length < 50) {
+                return `<p class="short-text">${escapeHtml(content)}</p>`;
+            }
+            return `<div class="long-text">${escapeHtml(content).replace(/\n/g, '<br>')}</div>`;
+        }
+
+        // 渲染文本内容
+        function renderTextContent(text) {
+            if (!text || typeof text !== 'string') {
+                return '<div class="empty-message">暂无消息内容</div>';
+            }
+            if (text.length < 50) {
+                return `<p class="short-text">${escapeHtml(text)}</p>`;
+            }
+            return `<div class="long-text">${escapeHtml(text).replace(/\n/g, '<br>')}</div>`;
+        }
+
+        // 渲染JSON内容
+        function renderJsonContent(obj) {
+            const jsonString = JSON.stringify(obj, null, 2);
+            const highlighted = jsonString
+                .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+                .replace(/: "([^"]+)"/g, ': <span class="json-string">"$1"</span>')
+                .replace(/: (\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
+                .replace(/: (true|false)/g, ': <span class="json-boolean">$1</span>')
+                .replace(/: null/g, ': <span class="json-null">null</span>');
+            
+            return `<pre class="json-content">${highlighted}</pre>`;
+        }
+
+        // 提取思考过程
+        function extractThoughtProcess(result) {
+            try {
+                const outputs = result.outputs?.[0]?.outputs?.[0];
+                if (!outputs) return null;
+                
+                // 从 content_blocks 提取步骤
+                const contentBlocks = outputs.results?.message?.data?.content_blocks;
+                if (contentBlocks && contentBlocks.length > 0) {
+                    const contents = contentBlocks[0].contents;
+                    if (contents && contents.length > 0) {
+                        return contents;
+                    }
+                }
+                
+                // 备用路径
+                const altContentBlocks = outputs.results?.message?.content_blocks;
+                if (altContentBlocks && altContentBlocks.length > 0) {
+                    const contents = altContentBlocks[0].contents;
+                    if (contents && contents.length > 0) {
+                        return contents;
+                    }
+                }
+                
+                return null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // 打字机效果函数
+        function typeWriter(element, text, speed = 10, callback) {
+            let i = 0;
+            element.innerHTML = '';
+            function type() {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                } else if (callback) {
+                    callback();
+                }
+            }
+            type();
+        }
+
+        // 动画展示思考过程
+        function animateThoughtProcess(thoughtProcess) {
+            // 等待DOM更新
+            setTimeout(() => {
+                const thoughtContainer = document.querySelector('.thought-process:last-child');
+                if (!thoughtContainer) {
+                    console.warn('未找到思考过程容器');
+                    return;
+                }
+                
+                const thoughtHeader = thoughtContainer.querySelector('.thought-header');
+                const thoughtContent = thoughtContainer.querySelector('.thought-content');
+                
+                if (!thoughtHeader || !thoughtContent) {
+                    console.warn('未找到思考过程头部或内容');
+                    return;
+                }
+                
+                // 先清空所有步骤内容
+                const stepContents = thoughtContent.querySelectorAll('.step-content');
+                stepContents.forEach((el, index) => {
+                    el.innerHTML = '';
+                });
+                
+                // 逐步骤打字机效果
+                let currentStep = 0;
+                function animateStep() {
+                    if (currentStep < thoughtProcess.length) {
+                        const stepContent = stepContents[currentStep];
+                        const step = thoughtProcess[currentStep];
+                        const text = step?.text || '';
+                        if (!text) {
+                            currentStep++;
+                            setTimeout(animateStep, 100);
+                            return;
+                        }
+                        typeWriter(stepContent, text, 8, () => {
+                            currentStep++;
+                            setTimeout(animateStep, 300);
+                        });
+                    } else {
+                        // 所有步骤完成后，延迟1秒自动收起
+                        setTimeout(() => {
+                            thoughtHeader.classList.add('collapsed');
+                            thoughtContent.style.display = 'none';
+                        }, 1000);
+                    }
+                }
+                
+                animateStep();
+            }, 0);
+        }
+
+        // 添加响应结果
+        function addResult(result) {
+            const message = extractFirstMessage(result);
+            const thoughtProcess = extractThoughtProcess(result);
+            
+            if (message) {
+                // 将结果作为AI消息展示，保持对话连贯性
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message agent';
+                
+                // 判断是长文本还是短文本
+                let resultHtml = '';
+                if (message.length > 100) {
+                    // 长文本使用卡片展示
+                    resultHtml = `
+                        <div class="result-card">
+                            <div class="result-header">
+                                <span class="icon">💬</span>
+                                <span>分析结果</span>
+                            </div>
+                            <div class="result-content">
+                                ${renderMessageContent(message)}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // 短文本直接显示
+                    resultHtml = `<div class="message-content">${escapeHtml(message)}</div>`;
+                }
+                
+                // 构建思考过程HTML（在结果上面）
+                let thoughtHtml = '';
+                if (thoughtProcess && thoughtProcess.length > 1) {
+                    thoughtHtml = `
+                        <div class="thought-process" id="thought-${Date.now()}">
+                            <div class="thought-header" onclick="toggleThought(this)">
+                                <span class="thought-icon">🧠</span>
+                                <span>思考过程</span>
+                                <span class="thought-toggle">▼</span>
+                            </div>
+                            <div class="thought-content">
+                                ${thoughtProcess.map((step, index) => `
+                                    <div class="thought-step">
+                                        <div class="step-header">
+                                            <span class="step-index">${index + 1}</span>
+                                            <span class="step-title">${step.header?.title || '步骤'}</span>
+                                        </div>
+                                        <div class="step-content" id="step-content-${index}">${escapeHtml(step.text)}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // 思考过程在上面，结果在下面
+                messageDiv.innerHTML = `
+                    <div class="message-avatar">🤖</div>
+                    <div class="agent-response">${thoughtHtml}${resultHtml}</div>
+                `;
+                
+                messagesWrapper.appendChild(messageDiv);
+            
+            // 打字机效果展示思考过程，完成后自动收起
+            if (thoughtProcess && thoughtProcess.length > 1) {
+                animateThoughtProcess(thoughtProcess);
+            }
+            
+            // 从文本中提取规避区坐标（支持多种格式）
+            function extractCoordsFromText(text) {
+                // 尝试匹配标准格式：坐标：[[lng,lat],[lng,lat],...]
+                let match = text.match(/坐标[：:]\s*(\[\[.*\]\])/);
+                if (match && match[1]) {
+                    try {
+                        const coords = JSON.parse(match[1]);
+                        if (Array.isArray(coords) && coords.length > 0) {
+                            return coords;
+                        }
+                    } catch (e) {
+                        console.error('JSON解析失败，尝试其他方式:', e);
+                    }
+                }
+                
+                // 尝试匹配不带外层括号的格式：坐标：[lng,lat],[lng,lat],...
+                match = text.match(/坐标[：:]\s*(\[[^\]]+\](?:,\s*\[[^\]]+\])*)/);
+                if (match && match[1]) {
+                    try {
+                        const coordsStr = '[' + match[1] + ']';
+                        const coords = JSON.parse(coordsStr);
+                        if (Array.isArray(coords) && coords.length > 0) {
+                            return coords;
+                        }
+                    } catch (e) {
+                        console.error('解析失败，尝试逐个解析:', e);
+                    }
+                }
+                
+                // 尝试手动解析：查找所有 [lng,lat] 格式的坐标
+                const coordMatches = text.matchAll(/\[\s*(-?\d+\.?\d*)\s*[,，]\s*(-?\d+\.?\d*)\s*\]/g);
+                const coords = [];
+                for (const m of coordMatches) {
+                    const lng = parseFloat(m[1]);
+                    const lat = parseFloat(m[2]);
+                    if (!isNaN(lng) && !isNaN(lat) && lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90) {
+                        coords.push([lng, lat]);
+                    }
+                }
+                
+                if (coords.length >= 3) {
+                    return coords;
+                }
+                
+                return null;
+            }
+            
+            // 从服务端结果中提取规避区坐标并绘制（规避区数据来自服务端）
+            let parsedResult = result;
+            
+            // 如果 result 是字符串，先解析成对象
+            if (typeof result === 'string') {
+                try {
+                    parsedResult = JSON.parse(result);
+                } catch (e) {
+                    console.error('解析结果失败:', e);
+                    parsedResult = null;
+                }
+            }
+            
+            // 从 result.json 结构中提取消息文本
+            let messageText = '';
+            if (parsedResult && parsedResult.outputs && Array.isArray(parsedResult.outputs) && parsedResult.outputs[0]) {
+                const firstOutput = parsedResult.outputs[0];
+                if (firstOutput.outputs && Array.isArray(firstOutput.outputs) && firstOutput.outputs[0]) {
+                    const secondOutput = firstOutput.outputs[0];
+                    
+                    // 尝试从多个路径提取消息文本
+                    if (secondOutput.results && secondOutput.results.message) {
+                        const msg = secondOutput.results.message;
+                        messageText = msg.text || msg.data?.text || '';
+                    }
+                    
+                    if (!messageText && secondOutput.outputs && secondOutput.outputs.message) {
+                        messageText = secondOutput.outputs.message.message || '';
+                    }
+                    
+                    if (!messageText && secondOutput.messages && Array.isArray(secondOutput.messages) && secondOutput.messages[0]) {
+                        messageText = secondOutput.messages[0].message || '';
+                    }
+                }
+            }
+            
+            // 如果获取到消息文本，提取坐标并绘制规避区
+            if (messageText) {
+                const coords = extractCoordsFromText(messageText);
+                if (coords && coords.length > 0) {
+                    drawAvoidZoneFromCoords(coords, '规避区');
+                }
+            }
+        } else {
+                // 回退到原始JSON展示
+                const jsonString = JSON.stringify(result, null, 2);
+                const highlighted = jsonString
+                    .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+                    .replace(/: "([^"]+)"/g, ': <span class="json-string">"$1"</span>')
+                    .replace(/: (\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
+                    .replace(/: (true|false)/g, ': <span class="json-boolean">$1</span>')
+                    .replace(/: null/g, ': <span class="json-null">null</span>');
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message agent';
+                messageDiv.innerHTML = `
+                    <div class="message-avatar">🤖</div>
+                    <div class="agent-response">
+                        <div class="result-card">
+                            <div class="result-header">
+                                <span class="icon">📋</span>
+                                <span>原始数据</span>
+                            </div>
+                            <div class="result-content">
+                                <pre class="json-content">${highlighted}</pre>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                messagesWrapper.appendChild(messageDiv);
+            }
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // 添加消息
+        function addMessage(text, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'agent'}`;
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${isUser ? '👤' : '🤖'}</div>
+                <div class="message-content">${escapeHtml(text)}</div>
+            `;
+            messagesWrapper.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // 添加打字中状态
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message agent';
+            typingDiv.innerHTML = `
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
+                    </div>
+                </div>
+            `;
+            messagesWrapper.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            return typingDiv;
+        }
+
+        // 添加错误消息
+        function addError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `<span class="error-icon">❌</span><span>${escapeHtml(message)}</span>`;
+            messagesWrapper.appendChild(errorDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // 发送消息
+        async function sendMessage(message) {
+            if (!message.trim()) return;
+
+            addMessage(message, true);
+            messageInput.value = '';
+
+            // 解析用户输入中的坐标点，如果有至少两个点，绘制矩形搜索范围
+            const coords = parseCoordinates(message);
+            console.log('解析到的坐标点:', coords);
+            
+            const bounds = parseBounds(message);
+            console.log('解析到的边界:', bounds);
+            
+            if (bounds) {
+                console.log('开始绘制搜索范围');
+                clearAllLayers();
+                drawSearchBounds(bounds);
+                console.log('搜索范围绘制完成');
+            } else {
+                console.log('未解析到有效边界');
+            }
+
+            const typingIndicator = showTypingIndicator();
+
+            try {
+                // 第一次发送时创建session_id，之后复用
+                if (!sessionId) {
+                    sessionId = crypto.randomUUID();
+                }
+                
+                const payload = {
+                    "output_type": "chat",
+                    "input_type": "chat",
+                    "input_value": message,
+                    "session_id": sessionId
+                };
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                typingIndicator.remove();
+                addResult(result);
+
+            } catch (error) {
+                typingIndicator.remove();
+                addError('请求失败: ' + error.message);
+            }
+        }
+
+        // 新建对话
+        function newChat() {
+            sessionId = null;
+            messagesContainer.innerHTML = `
+                <div class="messages-wrapper">
+                    <div class="message agent">
+                        <div class="message-avatar">🤖</div>
+                        <div class="message-content">
+                            你好！有什么可以帮到你？
+                        </div>
+                    </div>
+                </div>
+            `;
+            messagesWrapper = messagesContainer.querySelector('.messages-wrapper');
+        }
+
+        // 事件监听
+        assistantBtn.addEventListener('click', toggleDialog);
+        closeBtn.addEventListener('click', toggleDialog);
+        newChatBtn.addEventListener('click', newChat);
+        sendBtn.addEventListener('click', () => sendMessage(messageInput.value));
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(messageInput.value);
+            }
+        });
+
+        // 初始化
+        window.onload = initMap;
+    </script>
+</body>
+</html>
